@@ -3,11 +3,14 @@ const results = document.querySelector('.results');
 let currentShooterIndex = 202;
 const width = 15;
 const aliensRemoved = [];
+let invadersId;
+let isGoingRight = true;
+let direction = 1;
+let result = 0;
 
 
 for (let i = 0; i < width * width; i++) {
     const square = document.createElement('div');
-    square.id = i;
     grid.appendChild(square);
 }
 
@@ -31,6 +34,12 @@ draw();
 
 squares[currentShooterIndex].classList.add('shooter');
 
+function remove() {
+    for (let i = 0; i < spaceships.length; i++) {
+        squares[spaceships[i]].classList.remove('invader');
+    }
+}
+
 function moveShooter(e) {
     squares[currentShooterIndex].classList.remove('shooter');
     switch (e.key) {
@@ -45,3 +54,74 @@ function moveShooter(e) {
 }
 
 document.addEventListener('keydown', moveShooter);
+
+function moveInvaders() {
+    const leftEdge = spaceships[0] % width === 0;
+    const rightEdge = spaceships[spaceships.length - 1] % width === width - 1;
+
+    remove();
+
+    if (rightEdge && isGoingRight) {
+        for (let i = 0; i < spaceships.length; i++) {
+            spaceships[i] += width + 1;
+            direction = -1;
+            isGoingRight = false;
+        }
+    }
+
+    if (leftEdge && !isGoingRight) {
+        for (let i = 0; i < spaceships.length; i++) {
+            spaceships[i] += width - 1;
+            direction = 1;
+            isGoingRight = true; // 305 239 2213
+        }
+    }
+
+    for (let i = 0; i < spaceships.length; i++) {
+        spaceships[i] += direction;
+    }
+
+    draw();
+
+    if (squares[currentShooterIndex].classList.contains('invader')) {
+        results.innerHTML = 'GAME OVER';
+        clearInterval(invadersId);
+    }
+
+    if (aliensRemoved.length === spaceships.length) {
+        results.innerHTML = 'YOU WIN';
+        clearInterval(invadersId);
+    }
+}
+
+invadersId = setInterval(moveInvaders, 600);
+
+function shoot(e) {
+    let laserId;
+    let currentLaserIndex = currentShooterIndex;
+
+    function moveLaser() {
+        squares[currentLaserIndex].classList.remove('laser');
+        currentLaserIndex -= width;
+        squares[currentLaserIndex].classList.add('laser');
+
+        if (squares[currentLaserIndex].classList.contains('invader')) {
+            squares[currentLaserIndex].classList.remove('laser');
+            squares[currentLaserIndex].classList.remove('invader');
+            squares[currentLaserIndex].classList.add('boom');
+
+            setTimeout(() => squares[currentLaserIndex].classList.remove('boom'), 300);
+            clearInterval(laserId);
+
+            const spaceshipRemoved = spaceships.indexOf(currentLaserIndex);
+            aliensRemoved.push(spaceshipRemoved);
+            result++;
+            results.innerHTML = result;
+        }
+    }
+    if (e.key === 'ArrowUp') {
+        laserId = setInterval(moveLaser, 100);
+    }
+}
+
+document.addEventListener('keydown', shoot);
